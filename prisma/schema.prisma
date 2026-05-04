@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+  id                    String   @id @default(uuid())
+  email                 String   @unique
+  passwordHash          String?
+  displayName           String
+  avatarUrl             String?
+  googleId              String?  @unique
+  googleAccessToken     String?
+  googleRefreshToken    String?
+  googleTokenExpiry     DateTime?
+  events                Event[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Event {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  date            DateTime
+  eventCode       String   @unique
+  driveFolderId   String
+  driveFolderUrl  String
+  qrCodeUrl       String?
+  isActive        Boolean  @default(true)
+  hostId          String
+  host            User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  uploads         Upload[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("events")
+}
+
+model Upload {
+  id          String   @id @default(uuid())
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  driveFileId String
+  driveUrl    String
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  uploadedAt  DateTime @default(now())
+
+  @@map("uploads")
+}
+

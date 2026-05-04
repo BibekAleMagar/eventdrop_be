@@ -1,0 +1,55 @@
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { RegisterDto } from './dto/register.dto.js';
+import * as bcrypt from 'bcrypt';
+import { UserService } from '..//user/user.service.js';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly usersService: UserService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async register(dto: RegisterDto) {
+    if (!dto.password) {
+      throw new BadRequestException('Password is required for email signup');
+    }
+    const user = await this.usersService.create(dto);
+    return this.issueTokens(user);
+  }
+
+  async validateLocalUser(email: string, password: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException(
+        'Account was created via Google Sign-In. Please use that method.',
+      );
+    }
+
+    const passwordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordValid) return null;
+
+    return user;
+  }
+
+  async loginLocal(user: any) {
+    return this.issueTokens(user);
+  }
+
+  async loginGoogle(user: any) {
+    return this.issueTokens(user);
+  }
+
+  issueTokens(user: { id: string; email: string }) {
+    const payload = { sub: user.id, email: user.email };
+    return {
+      accessToken: this.jwtService.sign(payload),
+      user: { id: user.id, email: user.email },
+    };
+  }
+}
