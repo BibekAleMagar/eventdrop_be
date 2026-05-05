@@ -2,11 +2,13 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto.js';
 import * as bcrypt from 'bcrypt';
 import { UserService } from '..//user/user.service.js';
+import { AuthenticatedUser } from 'src/types/authenticate-user.type.js';
 
 @Injectable()
 export class AuthService {
@@ -23,21 +25,29 @@ export class AuthService {
     return this.issueTokens(user);
   }
 
-  async validateLocalUser(email: string, password: string) {
-    const user = await this.usersService.findByEmail(email);
-    if (!user || !user.passwordHash) {
-      throw new UnauthorizedException(
-        'Account was created via Google Sign-In. Please use that method.',
-      );
-    }
+ async validateLocalUser(email: string, password: string): Promise<AuthenticatedUser | null> {
+  const user = await this.usersService.findByEmail(email);
 
-    const passwordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!passwordValid) return null;
-
-    return user;
+  if (!user) {
+    return null;
   }
 
-  async loginLocal(user: any) {
+  if (!user.passwordHash) {
+    throw new UnauthorizedException(
+      'Account was created via Google Sign-In. Please use that method.',
+    );
+  }
+
+  const passwordValid = await bcrypt.compare(password, user.passwordHash);
+  
+  if (!passwordValid) {
+    return null;
+  }
+
+  return user;
+}
+
+  async loginLocal(user: AuthenticatedUser) {
     return this.issueTokens(user);
   }
 
@@ -45,11 +55,11 @@ export class AuthService {
     return this.issueTokens(user);
   }
 
-  issueTokens(user: { id: string; email: string }) {
-    const payload = { sub: user.id, email: user.email };
+  issueTokens(user: AuthenticatedUser) {
+    const payload = { sub: user.id, email: user.email};
     return {
       accessToken: this.jwtService.sign(payload),
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email, username: user.displayName },
     };
   }
 }

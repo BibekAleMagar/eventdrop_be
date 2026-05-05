@@ -1,5 +1,3 @@
-// src/auth/auth.module.ts
-
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -8,6 +6,8 @@ import { UserModule } from '../user/user.module.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './strategy/jwt.strategy.js';
 import { AuthController } from './auth.controller.js';
+import { LocalStrategy } from './strategy/local.strategy.js';
+import { GoogleStrategy } from './strategy/google.strategy.js';
 
 @Module({
   imports: [
@@ -26,14 +26,13 @@ import { AuthController } from './auth.controller.js';
     return {
       secret: secret,
       signOptions: {
-        // We cast 'expiresIn' as any or StringValue to satisfy the type checker
         expiresIn: expiresIn as any, 
       },
     };
   },
 }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy],
   controllers: [AuthController],
   exports: [AuthService, JwtModule],
 })

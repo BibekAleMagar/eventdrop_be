@@ -6,8 +6,6 @@ import {
   UseGuards,
   Req,
   Res,
-  HttpCode,
-  HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
@@ -25,7 +23,6 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
-  // ─── Email / Password ───────────────────────────────────────────────────────
 
   @Public()
   @Post('register')
@@ -35,19 +32,16 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard('local'))
   login(@Req() req: any, @Body() _dto: LoginDto) {
     return this.authService.loginLocal(req.user);
   }
 
-  // ─── Google OAuth2 ──────────────────────────────────────────────────────────
 
   @Public()
   @Get('google')
   @UseGuards(AuthGuard('google'))
   googleAuth() {
-    // Passport redirects to Google automatically
   }
 
   @Public()
@@ -62,7 +56,6 @@ export class AuthController {
     );
   }
 
-  // ─── Session info ────────────────────────────────────────────────────────────
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
