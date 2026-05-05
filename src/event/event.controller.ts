@@ -1,34 +1,49 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { EventService } from './event.service';
-import { CreateEventDto } from './dto/create-event.dto';
-import { UpdateEventDto } from './dto/update-event.dto';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  InternalServerErrorException,
+  UnauthorizedException
+} from '@nestjs/common';
+import { EventService } from './event.service.js';
+import { CreateEventDto } from './dto/create-event.dto.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorator/current-user.decorator.js';
 
-@Controller('event')
+@Controller('events')
+@UseGuards(JwtAuthGuard)
 export class EventController {
-  constructor(private readonly eventService: EventService) {}
+  constructor(
+    private readonly eventService: EventService,
+    private readonly prisma: PrismaService,
+  ) { }
 
   @Post()
-  create(@Body() createEventDto: CreateEventDto) {
-    return this.eventService.create(createEventDto);
-  }
+  async create(
+    @Body() dto: CreateEventDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { googleAccessToken: true },
+    });
 
-  @Get()
-  findAll() {
-    return this.eventService.findAll();
-  }
+    if (!user || !user.googleAccessToken) {
+      throw new UnauthorizedException(
+        'Google Drive access not found. Please log in with Google again.',
+      );
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.eventService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto) {
-    return this.eventService.update(+id, updateEventDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.eventService.remove(+id);
+    try {
+      return await this.eventService.create(
+        dto,
+        userId,
+        user.googleAccessToken
+      );
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }
