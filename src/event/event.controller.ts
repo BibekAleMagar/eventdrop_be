@@ -24,10 +24,10 @@ export class EventController {
   async create(@Body() dto: CreateEventDto, @CurrentUser('id') userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { googleAccessToken: true },
+      select: { googleAccessToken: true, googleRefreshToken: true },
     });
 
-    if (!user || !user.googleAccessToken) {
+    if (!user || !user.googleAccessToken || !user.googleRefreshToken) {
       throw new UnauthorizedException(
         'Google Drive access not found. Please log in with Google again.',
       );
@@ -38,6 +38,7 @@ export class EventController {
         dto,
         userId,
         user.googleAccessToken,
+        user.googleRefreshToken,
       );
     } catch (error) {
       throw new InternalServerErrorException(error.message);
