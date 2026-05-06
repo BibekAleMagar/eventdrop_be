@@ -1,10 +1,13 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class DriveService {
-  private getDriveClient(accessToken: string, refreshToken?: string) {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private getAuthClient(accessToken: string, refreshToken: string) {
     const auth = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -15,20 +18,38 @@ export class DriveService {
       refresh_token: refreshToken,
     });
 
-    return google.drive({ version: 'v3', auth });
+    // 👇 Fires automatically when access token is expired and gets refreshed
+    auth.on('tokens', async (tokens) => {
+      if (tokens.access_token) {
+        await this.prisma.user.updateMany({
+          where: { googleRefreshToken: refreshToken },
+          data: {
+            googleAccessToken: tokens.access_token,
+            ...(tokens.expiry_date && {
+              googleTokenExpiry: new Date(tokens.expiry_date),
+            }),
+          },
+        });
+      }
+    });
+
+    return auth;
   }
 
-  async createFolder(folderName: string, accessToken: string) {
-    const drive = this.getDriveClient(accessToken);
-
-    const fileMetadata = {
-      name: folderName,
-      mimeType: 'application/vnd.google-apps.folder',
-    };
+  async createFolder(
+    folderName: string,
+    accessToken: string,
+    refreshToken: string, // 👈 added
+  ) {
+    const auth = this.getAuthClient(accessToken, refreshToken);
+    const drive = google.drive({ version: 'v3', auth });
 
     try {
       const response = await drive.files.create({
-        requestBody: fileMetadata,
+        requestBody: {
+          name: folderName,
+          mimeType: 'application/vnd.google-apps.folder',
+        },
         fields: 'id, webViewLink',
       });
 
@@ -47,9 +68,10 @@ export class DriveService {
     accessToken: string,
     refreshToken: string,
   ) {
-    try {
-      const drive = this.getDriveClient(accessToken, refreshToken);
+    const auth = this.getAuthClient(accessToken, refreshToken);
+    const drive = google.drive({ version: 'v3', auth });
 
+    try {
       const bufferStream = new Readable();
       bufferStream.push(file.buffer);
       bufferStream.push(null);
@@ -67,8 +89,8 @@ export class DriveService {
       });
 
       return {
-        id: response.data.id,
-        url: response.data.webViewLink,
+        id: response.data.id ?? '',
+        url: response.data.webViewLink ?? '',
       };
     } catch (err) {
       console.error('Google Drive Error:', err.response?.data || err.message);
