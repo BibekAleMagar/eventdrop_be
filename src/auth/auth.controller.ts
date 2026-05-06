@@ -23,7 +23,6 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
-
   @Public()
   @Post('register')
   register(@Body() dto: RegisterDto) {
@@ -37,12 +36,10 @@ export class AuthController {
     return this.authService.loginLocal(req.user);
   }
 
-
   @Public()
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  googleAuth() {
-  }
+  googleAuth() {}
 
   @Public()
   @Get('google/callback')
@@ -55,7 +52,6 @@ export class AuthController {
       `${frontendUrl}/auth/success?token=${result.accessToken}`,
     );
   }
-
 
   @UseGuards(JwtAuthGuard)
   @Get('me')

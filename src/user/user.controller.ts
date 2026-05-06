@@ -11,15 +11,12 @@ export class UserController {
   constructor(private readonly usersService: UserService) {}
 
   @Get('me')
-  getMe(@CurrentUser() user: AuthenticatedUser ) {
+  getMe(@CurrentUser() user: AuthenticatedUser) {
     return this.usersService.findById(user.id);
   }
 
   @Patch('me')
-  updateMe(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() dto: UpdateUserDto,
-  ) {
+  updateMe(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateUserDto) {
     return this.usersService.update(user.id, dto);
   }
 }

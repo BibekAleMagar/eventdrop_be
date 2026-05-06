@@ -1,13 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { google } from 'googleapis';
+import { Readable } from 'stream';
 
 @Injectable()
 export class DriveService {
-  private getDriveClient(accessToken: string) {
-    const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({ access_token: accessToken });
+  private getDriveClient(accessToken: string, refreshToken?: string) {
+    const auth = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+    );
 
-    return google.drive({ version: 'v3', auth: oauth2Client });
+    auth.setCredentials({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+
+    return google.drive({ version: 'v3', auth });
   }
 
   async createFolder(folderName: string, accessToken: string) {
@@ -30,6 +38,43 @@ export class DriveService {
       };
     } catch (error) {
       throw new Error(`Failed to create Google Drive folder: ${error.message}`);
+    }
+  }
+
+  async uploadFile(
+    file: Express.Multer.File,
+    folderId: string,
+    accessToken: string,
+    refreshToken: string,
+  ) {
+    try {
+      const drive = this.getDriveClient(accessToken, refreshToken);
+
+      const bufferStream = new Readable();
+      bufferStream.push(file.buffer);
+      bufferStream.push(null);
+
+      const response = await drive.files.create({
+        requestBody: {
+          name: file.originalname || `capture_${Date.now()}.jpg`,
+          parents: [folderId],
+        },
+        media: {
+          mimeType: file.mimetype,
+          body: bufferStream,
+        },
+        fields: 'id, webViewLink',
+      });
+
+      return {
+        id: response.data.id,
+        url: response.data.webViewLink,
+      };
+    } catch (err) {
+      console.error('Google Drive Error:', err.response?.data || err.message);
+      throw new InternalServerErrorException(
+        `Google Upload Failed: ${err.message}`,
+      );
     }
   }
 }

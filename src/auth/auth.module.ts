@@ -14,23 +14,23 @@ import { GoogleStrategy } from './strategy/google.strategy.js';
     UserModule,
     PassportModule,
     JwtModule.registerAsync({
-  inject: [ConfigService],
-  useFactory: (config: ConfigService) => {
-    const secret = config.get<string>('JWT_SECRET');
-    const expiresIn = config.get<string>('JWT_EXPIRES_IN') || '1d';
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const secret = config.get<string>('JWT_SECRET');
+        const expiresIn = config.get<string>('JWT_EXPIRES_IN') || '1d';
 
-    if (!secret) {
-      throw new Error('JWT_SECRET is not defined in .env');
-    }
+        if (!secret) {
+          throw new Error('JWT_SECRET is not defined in .env');
+        }
 
-    return {
-      secret: secret,
-      signOptions: {
-        expiresIn: expiresIn as any, 
+        return {
+          secret: secret,
+          signOptions: {
+            expiresIn: expiresIn as any,
+          },
+        };
       },
-    };
-  },
-}),
+    }),
   ],
   providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy],
   controllers: [AuthController],

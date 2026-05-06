@@ -4,7 +4,7 @@ import {
   Body,
   UseGuards,
   InternalServerErrorException,
-  UnauthorizedException
+  UnauthorizedException,
 } from '@nestjs/common';
 import { EventService } from './event.service.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
@@ -18,13 +18,10 @@ export class EventController {
   constructor(
     private readonly eventService: EventService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   @Post()
-  async create(
-    @Body() dto: CreateEventDto,
-    @CurrentUser('id') userId: string,
-  ) {
+  async create(@Body() dto: CreateEventDto, @CurrentUser('id') userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { googleAccessToken: true },
@@ -40,7 +37,7 @@ export class EventController {
       return await this.eventService.create(
         dto,
         userId,
-        user.googleAccessToken
+        user.googleAccessToken,
       );
     } catch (error) {
       throw new InternalServerErrorException(error.message);

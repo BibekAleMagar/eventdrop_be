@@ -25,27 +25,30 @@ export class AuthService {
     return this.issueTokens(user);
   }
 
- async validateLocalUser(email: string, password: string): Promise<AuthenticatedUser | null> {
-  const user = await this.usersService.findByEmail(email);
+  async validateLocalUser(
+    email: string,
+    password: string,
+  ): Promise<AuthenticatedUser | null> {
+    const user = await this.usersService.findByEmail(email);
 
-  if (!user) {
-    return null;
+    if (!user) {
+      return null;
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException(
+        'Account was created via Google Sign-In. Please use that method.',
+      );
+    }
+
+    const passwordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!passwordValid) {
+      return null;
+    }
+
+    return user;
   }
-
-  if (!user.passwordHash) {
-    throw new UnauthorizedException(
-      'Account was created via Google Sign-In. Please use that method.',
-    );
-  }
-
-  const passwordValid = await bcrypt.compare(password, user.passwordHash);
-  
-  if (!passwordValid) {
-    return null;
-  }
-
-  return user;
-}
 
   async loginLocal(user: AuthenticatedUser) {
     return this.issueTokens(user);
@@ -56,7 +59,7 @@ export class AuthService {
   }
 
   issueTokens(user: AuthenticatedUser) {
-    const payload = { sub: user.id, email: user.email};
+    const payload = { sub: user.id, email: user.email };
     return {
       accessToken: this.jwtService.sign(payload),
       user: { id: user.id, email: user.email, username: user.displayName },

@@ -1,4 +1,3 @@
-
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
@@ -14,14 +13,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientID: configService.get<string>('GOOGLE_CLIENT_ID'),
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET'),
       callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL'),
-      scope: [
-        'email',
-        'profile',
-        'https://www.googleapis.com/auth/drive.file', 
-      ],
-      accessType: 'offline',
-      prompt: 'consent', 
+      scope: ['email', 'profile', 'https://www.googleapis.com/auth/drive.file'],
     } as any);
+  }
+
+  authenticate(req: any, options?: any) {
+    super.authenticate(req, {
+      ...options,
+      accessType: 'offline',
+      prompt: 'consent',
+    });
   }
 
   async validate(
@@ -30,6 +31,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: any,
     done: VerifyCallback,
   ) {
+    console.log('accessToken:', accessToken);
+    console.log('refreshToken:', refreshToken); //
     const { id, emails, displayName, photos } = profile;
 
     const tokenExpiry = new Date(Date.now() + 3600 * 1000); // 1 hour from now

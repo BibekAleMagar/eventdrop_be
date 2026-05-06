@@ -62,7 +62,9 @@ export class UserService {
       where: { googleId: data.googleId },
       update: {
         googleAccessToken: data.googleAccessToken,
-        googleRefreshToken: data.googleRefreshToken,
+        ...(data.googleRefreshToken && {
+          googleRefreshToken: data.googleRefreshToken,
+        }),
         googleTokenExpiry: data.googleTokenExpiry,
         avatarUrl: data.avatarUrl,
       },
