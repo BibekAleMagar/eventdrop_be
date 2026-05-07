@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
 import { DriveService } from '../drive/drive.service.js';
@@ -18,6 +18,20 @@ export class EventService {
     googleToken: string,
     refreshToken: string,
   ) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(dto.startingDate);
+    const endDate = dto.endingDate ? new Date(dto.endingDate) : null;
+
+    if (startDate <= today) {
+      throw new BadRequestException('Starting date must be in the future');
+    }
+
+    if (endDate && endDate <= startDate) {
+      throw new BadRequestException('Ending date must be after starting date');
+    }
+
     const nanoid = customAlphabet('123456789ABCDEFGHJKLMNPQRSTUVWXYZ', 6);
     const eventCode = nanoid();
 
@@ -46,7 +60,7 @@ export class EventService {
       data: {
         name: dto.name,
         description: dto.description,
-        date: dto.date,
+        startingDate: dto.startingDate,
         eventCode: eventCode,
         driveFolderId: folder.id || '',
         driveFolderUrl: folder.webViewLink || '',
@@ -71,14 +85,12 @@ export class EventService {
   ): Promise<string> {
     const qrContent = `${eventCode}`;
 
-    // Generate QR as buffer
     const qrBuffer = await QRCode.toBuffer(qrContent, {
       errorCorrectionLevel: 'H',
       width: 400,
       margin: 1,
     });
 
-    // Upload to the event's Drive folder
     const driveFile = await this.driveService.uploadFile(
       {
         buffer: qrBuffer,
@@ -90,6 +102,6 @@ export class EventService {
       refreshToken,
     );
 
-    return driveFile.url; // 👈 saved to DB
+    return driveFile.url;
   }
 }

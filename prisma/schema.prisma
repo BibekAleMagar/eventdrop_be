@@ -34,7 +34,6 @@ model Event {
   id              String   @id @default(uuid())
   name            String
   description     String?
-  date            DateTime
   eventCode       String   @unique
   driveFolderId   String
   driveFolderUrl  String
@@ -45,6 +44,8 @@ model Event {
   uploads         Upload[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  startingDate    DateTime
+  endingDate      DateTime?
 
   @@map("events")
 }

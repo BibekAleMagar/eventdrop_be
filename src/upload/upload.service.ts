@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateUploadDto } from './dto/create-upload.dto.js';
-import { UpdateUploadDto } from './dto/update-upload.dto.js';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DriveService } from '../drive/drive.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import sharp from 'sharp';
@@ -23,6 +25,17 @@ export class UploadService {
     });
 
     if (!event) throw new NotFoundException('Event not found');
+
+    if (event.endingDate) {
+      const today = new Date();
+      const endDate = new Date(event.endingDate);
+
+      if (today > endDate) {
+        throw new BadRequestException(
+          'Event has already ended, uploads are no longer allowed',
+        );
+      }
+    }
 
     if (!event.host.googleAccessToken || !event.host.googleRefreshToken) {
       throw new NotFoundException('Host google credentials not found');
