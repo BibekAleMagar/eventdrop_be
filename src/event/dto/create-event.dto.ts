@@ -15,5 +15,9 @@ export class CreateEventDto {
   description?: string;
 
   @IsDateString()
-  date: string;
+  startingDate: string;
+
+  @IsDateString()
+  @IsOptional()
+  endingDate?: string;
 }
