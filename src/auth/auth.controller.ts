@@ -36,10 +36,18 @@ export class AuthController {
     return this.authService.loginLocal(req.user);
   }
 
+  // @Public()
+  // @Post('google')
+  // @UseGuards(AuthGuard('google'))
+  // googleAuth(@Body('idToken') idToken: string) {
+  //   return this.authService.loginGoogle(idToken);
+  // }
+
   @Public()
-  @Get('google')
-  @UseGuards(AuthGuard('google'))
-  googleAuth() {}
+  @Post('google/token')
+  googleAuth(@Body('idToken') idToken: string) {
+    return this.authService.loginGoogleToken(idToken);
+  }
 
   @Public()
   @Get('google/callback')
@@ -47,9 +55,12 @@ export class AuthController {
   async googleCallback(@Req() req: any, @Res() res: any) {
     const result = await this.authService.loginGoogle(req.user);
     // In production redirect to your frontend with the token
-    const frontendUrl = this.configService.get('app.url');
+    const frontendUrl = this.configService.get('APP_URL');
     return res.redirect(
-      `${frontendUrl}/auth/success?token=${result.accessToken}`,
+      `${frontendUrl}}`,
+      // `${frontendUrl}/auth/success?token=${result.accessToken}&user=${JSON.stringify(
+      //   result.user,
+      // )}`,
     );
   }
 

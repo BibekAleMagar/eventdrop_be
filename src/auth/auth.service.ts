@@ -9,6 +9,7 @@ import { RegisterDto } from './dto/register.dto.js';
 import * as bcrypt from 'bcrypt';
 import { UserService } from '..//user/user.service.js';
 import { AuthenticatedUser } from 'src/types/authenticate-user.type.js';
+import { OAuth2Client } from 'google-auth-library';
 
 @Injectable()
 export class AuthService {
@@ -51,6 +52,30 @@ export class AuthService {
   }
 
   async loginLocal(user: AuthenticatedUser) {
+    return this.issueTokens(user);
+  }
+
+  async loginGoogleToken(idToken: string) {
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) throw new UnauthorizedException('Invalid Google token');
+
+    const user = await this.usersService.upsertGoogleUser({
+      googleId: payload.sub,
+      email: payload.email!,
+      displayName: payload.name ?? payload.email!,
+      avatarUrl: payload.picture,
+      googleAccessToken: idToken,
+      googleRefreshToken: undefined,
+      googleTokenExpiry: undefined,
+    });
+
     return this.issueTokens(user);
   }
 
