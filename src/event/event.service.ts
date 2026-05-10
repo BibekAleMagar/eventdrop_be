@@ -77,6 +77,14 @@ export class EventService {
     };
   }
 
+  async getEvents(userId: string) {
+    return await this.prisma.event.findMany({
+      where: {
+        hostId: userId,
+      },
+    });
+  }
+
   private async generateQr(
     eventCode: string,
     folderId: string,

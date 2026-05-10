@@ -5,6 +5,7 @@ import {
   UseGuards,
   InternalServerErrorException,
   UnauthorizedException,
+  Get,
 } from '@nestjs/common';
 import { EventService } from './event.service.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
@@ -19,6 +20,11 @@ export class EventController {
     private readonly eventService: EventService,
     private readonly prisma: PrismaService,
   ) {}
+
+  @Get("my-events")
+  async getEvents(@CurrentUser('id') userId: string) {
+    return await this.eventService.getEvents(userId);
+  }
 
   @Post()
   async create(@Body() dto: CreateEventDto, @CurrentUser('id') userId: string) {
