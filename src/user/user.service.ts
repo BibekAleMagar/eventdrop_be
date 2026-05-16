@@ -58,15 +58,22 @@ export class UserService {
     googleRefreshToken?: string;
     googleTokenExpiry?: Date;
   }) {
+    // 💡 1. Look up if the user already exists to protect an existing refresh token
+    const existingUser = await this.prisma.user.findUnique({
+      where: { googleId: data.googleId },
+    });
+
+    // 💡 2. Fall back to the token already in the DB if Google omitted it this time
+    const resolvedRefreshToken = data.googleRefreshToken ?? existingUser?.googleRefreshToken;
+
     return this.prisma.user.upsert({
       where: { googleId: data.googleId },
       update: {
         googleAccessToken: data.googleAccessToken,
-        ...(data.googleRefreshToken && {
-          googleRefreshToken: data.googleRefreshToken,
-        }),
-        googleTokenExpiry: data.googleTokenExpiry,
+        googleRefreshToken: resolvedRefreshToken, // 🔑 Ensured it won't be dropped
+        ...(data.googleTokenExpiry && { googleTokenExpiry: data.googleTokenExpiry }),
         avatarUrl: data.avatarUrl,
+        displayName: data.displayName,
       },
       create: {
         googleId: data.googleId,
@@ -74,7 +81,7 @@ export class UserService {
         displayName: data.displayName,
         avatarUrl: data.avatarUrl,
         googleAccessToken: data.googleAccessToken,
-        googleRefreshToken: data.googleRefreshToken,
+        googleRefreshToken: data.googleRefreshToken, // Saved during initial setup
         googleTokenExpiry: data.googleTokenExpiry,
       },
     });

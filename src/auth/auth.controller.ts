@@ -45,8 +45,8 @@ export class AuthController {
 
   @Public()
   @Post('google/token')
-  googleAuth(@Body('idToken') idToken: string) {
-    return this.authService.loginGoogleToken(idToken);
+  async googleLogin(@Body() body: { idToken: string; serverAuthCode: string }) {
+    return this.authService.loginGoogleToken(body);
   }
 
   @Public()
