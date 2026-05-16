@@ -18,7 +18,6 @@ export class DriveService {
       refresh_token: refreshToken,
     });
 
-    // 👇 Fires automatically when access token is expired and gets refreshed
     auth.on('tokens', async (tokens) => {
       if (tokens.access_token) {
         await this.prisma.user.updateMany({
@@ -36,11 +35,8 @@ export class DriveService {
     return auth;
   }
 
-  async createFolder(
-    folderName: string,
-    accessToken: string,
-    refreshToken: string, // 👈 added
-  ) {
+  // 👇 Returns the refreshed access token alongside the folder data
+  async createFolder(folderName: string, accessToken: string, refreshToken: string) {
     const auth = this.getAuthClient(accessToken, refreshToken);
     const drive = google.drive({ version: 'v3', auth });
 
@@ -53,9 +49,14 @@ export class DriveService {
         fields: 'id, webViewLink',
       });
 
+      // 👇 Get the (possibly refreshed) access token from the auth client
+      const credentials = await auth.getAccessToken();
+      const newAccessToken = credentials.token ?? accessToken;
+
       return {
         id: response.data.id,
         webViewLink: response.data.webViewLink,
+        newAccessToken, // 👈 return it so callers can use the fresh token
       };
     } catch (error) {
       throw new Error(`Failed to create Google Drive folder: ${error.message}`);
