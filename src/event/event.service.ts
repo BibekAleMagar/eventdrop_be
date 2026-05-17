@@ -114,10 +114,18 @@ export class EventService {
     };
   }
 
-  async getEvents(userId: string) {
+  async getMyEvents(userId: string) {
     return await this.prisma.event.findMany({
       where: {
         hostId: userId,
+      },
+    });
+  }
+
+  async getEventByCode(eventCode: string) {
+    return await this.prisma.event.findUnique({
+      where: {
+        eventCode: eventCode,
       },
     });
   }

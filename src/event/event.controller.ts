@@ -6,12 +6,15 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
   Get,
+  NotFoundException,
+  Query
 } from '@nestjs/common';
 import { EventService } from './event.service.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorator/current-user.decorator.js';
+import { Public } from '../common/decorator/public.decorator.js';
 
 @Controller('events')
 @UseGuards(JwtAuthGuard)
@@ -22,8 +25,18 @@ export class EventController {
   ) {}
 
   @Get("my-events")
-  async getEvents(@CurrentUser('id') userId: string) {
-    return await this.eventService.getEvents(userId);
+  async getMyEvents(@CurrentUser('id') userId: string) {
+    return await this.eventService.getMyEvents(userId);
+  }
+
+  @Public()
+  @Get()
+  async getEventByCode(@Query('code') eventCode: string) {
+    const event = await this.eventService.getEventByCode(eventCode);
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+    return event;
   }
 
   @Post()
