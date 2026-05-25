@@ -92,6 +92,7 @@ export class EventService {
           name: dto.name,
           description: dto.description,
           startingDate: dto.startingDate,
+          endingDate: dto.endingDate,
           eventCode: eventCode,
           driveFolderId: folder.id,
           driveFolderUrl: folder.webViewLink,
