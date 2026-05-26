@@ -63,6 +63,84 @@ export class DriveService {
     }
   }
 
+  async getStorageQuota(accessToken: string, refreshToken: string) {
+  const auth = this.getAuthClient(accessToken, refreshToken);
+  const drive = google.drive({ version: 'v3', auth });
+
+  const about = await drive.about.get({
+    fields: 'storageQuota, user',
+  });
+
+  const quota = about.data.storageQuota;
+  const user = about.data.user;
+
+  const used = Number(quota?.usage ?? 0);
+  const total = Number(quota?.limit ?? 0);
+  const usedInDrive = Number(quota?.usageInDrive ?? 0);
+  const usedInTrash = Number(quota?.usageInDriveTrash ?? 0);
+
+  return {
+    user: {
+      name: user?.displayName,
+      email: user?.emailAddress,
+      photoUrl: user?.photoLink,
+    },
+    storage: {
+      totalBytes: total,
+      usedBytes: used,
+      usedInDriveBytes: usedInDrive,
+      usedInTrashBytes: usedInTrash,
+      freeBytes: total > 0 ? total - used : null,
+      usedPercent: total > 0 ? Math.round((used / total) * 100) : null,
+      total: this.formatBytes(total),
+      used: this.formatBytes(used),
+      usedInDrive: this.formatBytes(usedInDrive),
+      usedInTrash: this.formatBytes(usedInTrash),
+      free: total > 0 ? this.formatBytes(total - used) : 'Unlimited',
+    },
+  };
+}
+
+async getRecentFiles(accessToken: string, refreshToken: string, limit = 10) {
+  const auth = this.getAuthClient(accessToken, refreshToken);
+  const drive = google.drive({ version: 'v3', auth });
+
+  const res = await drive.files.list({
+    pageSize: limit,
+    orderBy: 'modifiedTime desc',
+    fields: 'files(id, name, mimeType, size, modifiedTime, webViewLink, iconLink)',
+    q: 'trashed=false',
+  });
+
+  return (res.data.files ?? []).map((f) => ({
+    id: f.id,
+    name: f.name,
+    mimeType: f.mimeType,
+    sizeBytes: Number(f.size ?? 0),
+    size: this.formatBytes(Number(f.size ?? 0)),
+    modifiedAt: f.modifiedTime,
+    webViewLink: f.webViewLink,
+    iconLink: f.iconLink,
+  }));
+}
+
+// async getSettingsSummary(accessToken: string, refreshToken: string) {
+//   const [quota, recentFiles] = await Promise.all([
+//     this.getStorageQuota(accessToken, refreshToken),
+//     this.getRecentFiles(accessToken, refreshToken),
+//   ]);
+
+//   return { quota, recentFiles };
+// }
+
+private formatBytes(bytes: number): string {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
   async uploadFile(
     file: Express.Multer.File,
     folderId: string,
