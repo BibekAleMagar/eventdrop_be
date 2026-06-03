@@ -1,0 +1,24 @@
+name: Sync to Hugging Face Hub
+
+on:
+  push:
+    branches: [main, master] # Triggers on pushes to either branch name
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Downloads complete history so Hugging Face can calculate diffs
+
+      - name: Push to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }} # Pulls your write token securely from GitHub Secrets
+        run: |
+          # 1. Create a temporary remote targeting your Hugging Face Space URL
+          git remote add hf_target https://Kendrixdfghjkl:$HF_TOKEN@huggingface.co/spaces/Kendrixdfghjkl/CSMS
+
+          # 2. Force push the workspace state directly to Hugging Face's main branch
+          git push --force hf_target HEAD:refs/heads/main
