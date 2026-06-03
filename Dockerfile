@@ -64,17 +64,18 @@ ENV NODE_ENV=production
 # Hugging Face mandates port 7860
 ENV PORT=7860
 
-RUN apk add --no-cache libc6-compat openssl \
-  && addgroup -S -g 1000 nodejs \
-  && adduser -S -u 1000 nestjs -G nodejs
+# Install runtime engine requirements safely without user clashing
+RUN apk add --no-cache libc6-compat openssl
 
-COPY --from=prod-deps --chown=nestjs:nodejs /usr/src/app/package.json ./package.json
-COPY --from=prod-deps --chown=nestjs:nodejs /usr/src/app/node_modules ./node_modules
-COPY --from=build --chown=nestjs:nodejs /usr/src/app/dist ./dist
-COPY --from=build --chown=nestjs:nodejs /usr/src/app/prisma ./prisma
-COPY --from=build --chown=nestjs:nodejs /usr/src/app/prisma.config.ts ./prisma.config.ts
+# Transfer ownership directly to the default 'node' user (ID 1000)
+COPY --from=prod-deps --chown=node:node /usr/src/app/package.json ./package.json
+COPY --from=prod-deps --chown=node:node /usr/src/app/node_modules ./node_modules
+COPY --from=build --chown=node:node /usr/src/app/dist ./dist
+COPY --from=build --chown=node:node /usr/src/app/prisma ./prisma
+COPY --from=build --chown=node:node /usr/src/app/prisma.config.ts ./prisma.config.ts
 
-USER nestjs
+# Switch container execution context to the node user
+USER node
 
 # Expose port 7860 for Hugging Face
 EXPOSE 7860
