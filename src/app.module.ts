@@ -9,6 +9,7 @@ import { EventModule } from './event/event.module.js';
 import { DriveModule } from './drive/drive.module.js';
 import { UploadModule } from './upload/upload.module.js';
 import jwtConfig from './config/jwt.config.js';
+import { AppController } from './app.controller.js';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -23,5 +24,6 @@ import jwtConfig from './config/jwt.config.js';
     DriveModule,
     UploadModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
