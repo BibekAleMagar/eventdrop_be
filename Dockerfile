@@ -26,10 +26,19 @@ ENV NODE_OPTIONS=--max-old-space-size=4096
 
 COPY . .
 
-# Prisma v7 reads DATABASE_URL from prisma.config.ts during generation.
-# A dummy value is enough for generating the client at build time.
+# Build Arguments (ARGS) to prevent the build from crashing if your NestJS 
+# config module validates presence of variables during 'pnpm build'
 ARG DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
-ENV DATABASE_URL=$DATABASE_URL
+ARG JWT_SECRET=""
+ARG JWT_EXPIRES_IN=""
+ARG GOOGLE_CLIENT_ID=""
+ARG GOOGLE_CLIENT_SECRET=""
+
+ENV DATABASE_URL=$DATABASE_URL \
+  JWT_SECRET=$JWT_SECRET \
+  JWT_EXPIRES_IN=$JWT_EXPIRES_IN \
+  GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID \
+  GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
 
 RUN pnpm prisma generate \
   && pnpm build
@@ -40,11 +49,11 @@ FROM base AS prod-deps
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
   pnpm install --prod --frozen-lockfile \
   && rm -rf \
-    node_modules/.pnpm/@electric-sql+pglite* \
+  node_modules/.pnpm/@electric-sql+pglite* \
   && rm -rf node_modules/.pnpm/@prisma+client@*/node_modules/@prisma/client/generator-build \
   && find node_modules -type f \( -name '*.map' -o -name '*.d.ts' -o -name '*.d.mts' -o -name 'README*' -o -name 'LICENSE*' \) -delete \
   && find node_modules/.pnpm -path '*/@prisma/client/runtime/query_compiler*' \
-    ! -name '*postgresql*' -delete
+  ! -name '*postgresql*' -delete
 
 
 FROM node:22-alpine AS production
@@ -52,11 +61,12 @@ FROM node:22-alpine AS production
 WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
-ENV PORT=3000
+# Hugging Face mandates port 7860
+ENV PORT=7860
 
 RUN apk add --no-cache libc6-compat openssl \
-  && addgroup -S nodejs \
-  && adduser -S nestjs -G nodejs
+  && addgroup -S -g 1000 nodejs \
+  && adduser -S -u 1000 nestjs -G nodejs
 
 COPY --from=prod-deps --chown=nestjs:nodejs /usr/src/app/package.json ./package.json
 COPY --from=prod-deps --chown=nestjs:nodejs /usr/src/app/node_modules ./node_modules
@@ -66,6 +76,7 @@ COPY --from=build --chown=nestjs:nodejs /usr/src/app/prisma.config.ts ./prisma.c
 
 USER nestjs
 
-EXPOSE 3000
+# Expose port 7860 for Hugging Face
+EXPOSE 7860
 
 CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/src/main.js"]
