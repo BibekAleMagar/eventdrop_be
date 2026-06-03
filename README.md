@@ -1,3 +1,16 @@
+---
+title: CSMS
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
+# EventDrop Backend
+
+Automated deployment pipeline synced via GitHub Actions.
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
