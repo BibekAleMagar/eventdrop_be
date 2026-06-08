@@ -124,11 +124,18 @@ export class EventService {
   }
 
   async getEventByCode(eventCode: string) {
-    return await this.prisma.event.findUnique({
+    const event = await this.prisma.event.findUnique({
       where: {
         eventCode: eventCode,
       },
     });
+    if (!event) {
+      throw new BadRequestException('Event not found');
+    }
+    if(event.endingDate && event.endingDate < new Date()) {
+      throw new BadRequestException('Event has already ended');
+    }
+    return event;
   }
 
   private async generateQr(
