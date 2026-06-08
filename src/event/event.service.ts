@@ -132,6 +132,9 @@ export class EventService {
     if (!event) {
       throw new BadRequestException('Event not found');
     }
+    if(event.startingDate > new Date()) {
+      throw new BadRequestException('Event has not started yet');
+    }
     if(event.endingDate && event.endingDate < new Date()) {
       throw new BadRequestException('Event has already ended');
     }
